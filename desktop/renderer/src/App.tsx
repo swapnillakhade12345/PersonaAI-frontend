@@ -19,6 +19,7 @@ import {
   USER_ACCOUNT_ACTION_EVENT,
   type UserAccountAction,
 } from "./userAccountEvents"
+import { createChat } from "./services/api"
 
 type Page =
   | "splash"
@@ -39,6 +40,28 @@ function App() {
   const [showIntroVideo, setShowIntroVideo] = useState(true)
 
   const [page, setPage] = useState<Page>("splash")
+  const [activeConversationId, setActiveConversationId] = useState(() => {
+    const savedId = localStorage.getItem("personaAI_conversationId")
+    if (savedId) return savedId
+
+    const conversationId = crypto.randomUUID()
+    localStorage.setItem("personaAI_conversationId", conversationId)
+    return conversationId
+  })
+
+  const handleCreateNewChat = async (): Promise<boolean> => {
+    const conversationId = crypto.randomUUID()
+    try {
+      await createChat(conversationId, "New chat")
+      localStorage.setItem("personaAI_conversationId", conversationId)
+      setActiveConversationId(conversationId)
+      setPage("chat")
+      return true
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not create a new chat.")
+      return false
+    }
+  }
 
   const withThemeControls = (content: ReactNode) => content
   const navigateWorkspace = (item: PersonaSidebarItem) => {
@@ -168,11 +191,7 @@ function App() {
         onOpenFiles={() => setPage("files")}
         onOpenTasks={() => setPage("tasks")}
         onNavigate={navigateWorkspace}
-        onNewChat={() => {
-          const nextConversationId = crypto.randomUUID()
-          localStorage.setItem("personaAI_conversationId", nextConversationId)
-          setPage("chat")
-        }}
+        onNewChat={() => { void handleCreateNewChat() }}
       />
     )
   }
@@ -188,13 +207,10 @@ function App() {
         onNavigate={navigateWorkspace}
         onOpenConversation={(conversationId) => {
           localStorage.setItem("personaAI_conversationId", conversationId)
+          setActiveConversationId(conversationId)
           setPage("chat")
         }}
-        onCreateNewChat={() => {
-          const nextConversationId = crypto.randomUUID()
-          localStorage.setItem("personaAI_conversationId", nextConversationId)
-          setPage("chat")
-        }}
+        onCreateNewChat={() => { void handleCreateNewChat() }}
       />
     )
   }
@@ -205,7 +221,9 @@ function App() {
   if (page === "chat") {
     return withThemeControls(
       <ChatScreen
+        conversationId={activeConversationId}
         onBackToDashboard={() => setPage("dashboard")}
+        onCreateNewChat={handleCreateNewChat}
         onOpenSettings={() => setPage("settings")}
         onNavigate={navigateWorkspace}
       />

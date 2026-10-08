@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import PersonaChatHistoryItem from "./PersonaChatHistoryItem"
-import {
-  deleteChatHistoryRecord,
-  readChatHistoryRecords,
-  renameChatHistoryRecord,
-  type ChatHistoryRecord,
-} from "./personaChatHistoryStorage"
+import type { ChatHistoryRecord } from "./personaChatHistoryStorage"
 import WorkspaceLayout from "./WorkspaceLayout"
 import type { PersonaSidebarItem } from "./PersonaSidebarNavigation"
+import {
+  deleteChat,
+  getChatMessages,
+  listChats,
+  renameChat,
+} from "../services/api"
 
 interface PersonaChatHistoryScreenProps {
   onBack?: () => void
@@ -26,9 +27,50 @@ function PersonaChatHistoryScreen({
   onOpenSettings,
 }: PersonaChatHistoryScreenProps) {
   const [search, setSearch] = useState("")
-  const [conversationList, setConversationList] = useState<ChatHistoryRecord[]>(() =>
-    readChatHistoryRecords()
-  )
+  const [conversationList, setConversationList] = useState<ChatHistoryRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadConversations = async () => {
+      setIsLoading(true)
+      setError("")
+      try {
+        const chats = await listChats()
+        const conversations = await Promise.all(
+          chats.map(async (chat): Promise<ChatHistoryRecord> => {
+            const messages = await getChatMessages(chat.id)
+            return {
+              id: chat.id,
+              title: chat.title,
+              createdAt: chat.created_at,
+              updatedAt: chat.updated_at,
+              messages: messages.map((message) => ({
+                id: message.id,
+                sender: message.role === "user" ? "user" : "ai",
+                text: message.content,
+                createdAt: message.created_at,
+              })),
+            }
+          })
+        )
+        if (!cancelled) setConversationList(conversations)
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Could not load chat history.")
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    void loadConversations()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -51,29 +93,44 @@ function PersonaChatHistoryScreen({
     onOpenConversation?.(conversation.id)
   }
 
-  const handleRenameConversation = (conversation: ChatHistoryRecord) => {
+  const handleRenameConversation = async (conversation: ChatHistoryRecord) => {
     const nextTitle = window.prompt("Rename conversation", conversation.title)
 
     if (!nextTitle) {
       return
     }
 
-    const renamed = renameChatHistoryRecord(conversation.id, nextTitle)
-
-    if (renamed) {
-      setConversationList(readChatHistoryRecords())
+    try {
+      const renamed = await renameChat(conversation.id, nextTitle.trim())
+      setConversationList((conversations) =>
+        conversations.map((item) =>
+          item.id === conversation.id
+            ? { ...item, title: renamed.title, updatedAt: renamed.updated_at }
+            : item
+        )
+      )
+      setError("")
+    } catch (renameError) {
+      setError(renameError instanceof Error ? renameError.message : "Could not rename chat.")
     }
   }
 
-  const handleDeleteConversation = (conversation: ChatHistoryRecord) => {
+  const handleDeleteConversation = async (conversation: ChatHistoryRecord) => {
     const confirmed = window.confirm(`Delete "${conversation.title}"?`)
 
     if (!confirmed) {
       return
     }
 
-    deleteChatHistoryRecord(conversation.id)
-    setConversationList(readChatHistoryRecords())
+    try {
+      await deleteChat(conversation.id)
+      setConversationList((conversations) =>
+        conversations.filter((item) => item.id !== conversation.id)
+      )
+      setError("")
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Could not delete chat.")
+    }
   }
 
   return (
@@ -122,7 +179,13 @@ function PersonaChatHistoryScreen({
           />
         </div>
 
-        {filteredConversations.length === 0 ? (
+        {error && (
+          <p role="alert" className="mb-4 text-sm text-red-300">{error}</p>
+        )}
+
+        {isLoading ? (
+          <p className="py-10 text-center text-sm text-slate-400">Loading chat history...</p>
+        ) : filteredConversations.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#263449] bg-[#111827]/60 p-10 text-center">
             <h2 className="text-xl font-semibold text-slate-200">No conversations found</h2>
             <p className="mt-2 text-sm text-slate-400">

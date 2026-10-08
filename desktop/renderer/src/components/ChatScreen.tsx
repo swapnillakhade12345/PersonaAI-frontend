@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import {
   clearChatMessages,
   getChatSnapshot,
+  replaceChatMessages,
   sendChatMessage,
   stopChatResponse,
   subscribeToChat,
@@ -10,11 +11,7 @@ import {
 import PersonaLogo from "./PersonaLogo"
 import WorkspaceLayout from "./WorkspaceLayout"
 import type { PersonaSidebarItem } from "./PersonaSidebarNavigation"
-import {
-  createTitleFromMessages,
-  type ChatHistoryMessage,
-  upsertChatHistoryRecord,
-} from "./personaChatHistoryStorage"
+import { createChat, getChatMessages } from "../services/api"
 
 type SpeechRecognitionResultEvent = {
   results: {
@@ -38,29 +35,24 @@ interface SpeechRecognitionLike {
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
 
 interface ChatScreenProps {
+  conversationId: string
   onBackToDashboard: () => void
+  onCreateNewChat: () => Promise<boolean>
   onOpenSettings: () => void
   onNavigate: (item: PersonaSidebarItem) => void
 }
 
 function ChatScreen({
+  conversationId,
   onBackToDashboard,
+  onCreateNewChat,
   onOpenSettings,
   onNavigate,
 }: ChatScreenProps) {
   const [message, setMessage] = useState("")
   const [isListening, setIsListening] = useState(false)
   const [voiceError, setVoiceError] = useState("")
-
-  // Persist conversation ID
-  const [conversationId, setConversationId] = useState(() => {
-    const savedId = localStorage.getItem("personaAI_conversationId")
-    if (savedId) return savedId
-
-    const newId = crypto.randomUUID()
-    localStorage.setItem("personaAI_conversationId", newId)
-    return newId
-  })
+  const [chatError, setChatError] = useState("")
 
   // External store subscription for streaming
   const { messages, isTyping, hasStartedStreaming } = useSyncExternalStore(
@@ -74,13 +66,6 @@ function ChatScreen({
   // NEW (Code 2): input reference for auto-focus
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  // Persist messages to local storage as backup
-  useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem("personaAI_chat", JSON.stringify(messages))
-    }
-  }, [messages])
-
   useEffect(() => {
     return () => {
       recognitionRef.current?.stop()
@@ -88,25 +73,33 @@ function ChatScreen({
   }, [])
 
   useEffect(() => {
-    if (messages.length === 0) {
-      return
+    let cancelled = false
+    replaceChatMessages([])
+
+    void createChat(conversationId, "New chat")
+      .then(() => {
+        if (!cancelled) setChatError("")
+        return getChatMessages(conversationId)
+      })
+      .then((storedMessages) => {
+        if (cancelled) return
+        replaceChatMessages(
+          storedMessages.map((storedMessage) => ({
+            id: storedMessage.id,
+            sender: storedMessage.role === "user" ? "user" : "ai",
+            text: storedMessage.content,
+          }))
+        )
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        setChatError(error instanceof Error ? error.message : "Could not load this chat.")
+      })
+
+    return () => {
+      cancelled = true
     }
-
-    const historyMessages: ChatHistoryMessage[] = messages.map((chatMessage) => ({
-      id: String(chatMessage.id),
-      sender: chatMessage.sender,
-      text: chatMessage.text,
-      createdAt: new Date().toISOString(),
-    }))
-
-    upsertChatHistoryRecord({
-      id: conversationId,
-      title: createTitleFromMessages(historyMessages),
-      messages: historyMessages,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-  }, [conversationId, messages])
+  }, [conversationId])
 
   // NEW (Code 2): response khatam hone par input pe focus
   useEffect(() => {
@@ -137,7 +130,7 @@ function ChatScreen({
     })
   }
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
     const confirmed = window.confirm(
       "Are you sure you want to clear the chat?"
     )
@@ -146,14 +139,10 @@ function ChatScreen({
       return
     }
 
-    // Wipe local storage & generate new conversation ID
-    const newConversationId = crypto.randomUUID()
-    setConversationId(newConversationId)
-    localStorage.setItem("personaAI_conversationId", newConversationId)
+    const created = await onCreateNewChat()
+    if (!created) return
 
     clearChatMessages()
-
-    // NEW (Code 2): clear ke baad input reset + focus
     setMessage("")
     requestAnimationFrame(() => {
       inputRef.current?.focus()
@@ -301,6 +290,11 @@ function ChatScreen({
                     <div className="shrink-0">
                       <PersonaLogo size="sm" />
                     </div>
+                  )}
+                  {chatError && (
+                    <p role="alert" className="mx-auto mt-4 max-w-4xl text-sm text-red-300">
+                      {chatError}
+                    </p>
                   )}
 
                   {/* Message Bubble */}

@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://127.0.0.1:3001").replace(/\/$/, "")
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://127.0.0.1:3001").replace(/\/$/, "")
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, init)
@@ -30,6 +30,14 @@ export interface ChatSummary {
   updated_at: string
 }
 
+export interface ChatMessageRecord {
+  id: string
+  content: string
+  role: "ai" | "user" | "system"
+  conversation_id: string
+  created_at: string
+}
+
 export interface DocumentSummary {
   id: string
   name: string
@@ -41,6 +49,28 @@ export function createChat(id: string, title: string) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, title }),
+  })
+}
+
+export function listChats() {
+  return request<ChatSummary[]>("/api/chats")
+}
+
+export function getChatMessages(chatId: string) {
+  return request<ChatMessageRecord[]>(`/api/chats/${encodeURIComponent(chatId)}/messages`)
+}
+
+export function renameChat(chatId: string, title: string) {
+  return request<ChatSummary>(`/api/chats/${encodeURIComponent(chatId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  })
+}
+
+export function deleteChat(chatId: string) {
+  return request<void>(`/api/chats/${encodeURIComponent(chatId)}`, {
+    method: "DELETE",
   })
 }
 

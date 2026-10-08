@@ -1,5 +1,7 @@
+import { API_BASE_URL } from "./services/api"
+
 export interface ChatMessage {
-  id: number
+  id: number | string
   sender: "user" | "ai"
   text: string
 }
@@ -12,13 +14,13 @@ interface ChatSnapshot {
 
 interface PersistedChat {
   messages: ChatMessage[]
-  pendingAssistantMessageId: number | null
+  pendingAssistantMessageId: number | string | null
 }
 
 const storageKey = "personaAI_chat"
 const listeners = new Set<() => void>()
 let activeRequest: AbortController | null = null
-let pendingAssistantMessageId: number | null = null
+let pendingAssistantMessageId: number | string | null = null
 let recoveredInterruptedStream = false
 
 function initialMessages(): ChatMessage[] {
@@ -96,6 +98,17 @@ export function getChatSnapshot(): ChatSnapshot {
   return snapshot
 }
 
+export function replaceChatMessages(messages: ChatMessage[]): void {
+  activeRequest?.abort()
+  activeRequest = null
+  pendingAssistantMessageId = null
+  publish({
+    messages,
+    isTyping: false,
+    hasStartedStreaming: false,
+  })
+}
+
 export async function sendChatMessage(message: string, conversationId: string): Promise<void> {
   if (snapshot.isTyping) return
 
@@ -104,7 +117,7 @@ export async function sendChatMessage(message: string, conversationId: string): 
     sender: "user",
     text: message,
   }
-  const assistantMessageId = userMessage.id + 1
+  const assistantMessageId = Date.now() + 1
   const controller = new AbortController()
   activeRequest = controller
   pendingAssistantMessageId = assistantMessageId
@@ -120,7 +133,7 @@ export async function sendChatMessage(message: string, conversationId: string): 
   })
 
   try {
-    const createResponse = await fetch("http://127.0.0.1:3001/api/chats", {
+    const createResponse = await fetch(`${API_BASE_URL}/api/chats`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,7 +151,7 @@ export async function sendChatMessage(message: string, conversationId: string): 
     }
 
     const response = await fetch(
-      `http://127.0.0.1:3001/api/chats/${encodeURIComponent(conversationId)}/messages/stream`,
+      `${API_BASE_URL}/api/chats/${encodeURIComponent(conversationId)}/messages/stream`,
       {
         method: "POST",
         headers: {
