@@ -3,12 +3,18 @@ import {
   clearChatMessages,
   getChatSnapshot,
   sendChatMessage,
-  stopChatResponse, // NEW (Code 2 feature) - chat-store mein add karna hai
+  stopChatResponse,
   subscribeToChat,
 } from "../chat-store"
 
 import PersonaLogo from "./PersonaLogo"
-import SidebarUserProfile from "./SidebarUserProfile" // NEW (Code 2)
+import WorkspaceLayout from "./WorkspaceLayout"
+import type { PersonaSidebarItem } from "./PersonaSidebarNavigation"
+import {
+  createTitleFromMessages,
+  type ChatHistoryMessage,
+  upsertChatHistoryRecord,
+} from "./personaChatHistoryStorage"
 
 type SpeechRecognitionResultEvent = {
   results: {
@@ -34,15 +40,13 @@ type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
 interface ChatScreenProps {
   onBackToDashboard: () => void
   onOpenSettings: () => void
-  onOpenFiles: () => void
-  onOpenTasks: () => void
+  onNavigate: (item: PersonaSidebarItem) => void
 }
 
 function ChatScreen({
   onBackToDashboard,
   onOpenSettings,
-  onOpenFiles,
-  onOpenTasks,
+  onNavigate,
 }: ChatScreenProps) {
   const [message, setMessage] = useState("")
   const [isListening, setIsListening] = useState(false)
@@ -82,6 +86,27 @@ function ChatScreen({
       recognitionRef.current?.stop()
     }
   }, [])
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      return
+    }
+
+    const historyMessages: ChatHistoryMessage[] = messages.map((chatMessage) => ({
+      id: String(chatMessage.id),
+      sender: chatMessage.sender,
+      text: chatMessage.text,
+      createdAt: new Date().toISOString(),
+    }))
+
+    upsertChatHistoryRecord({
+      id: conversationId,
+      title: createTitleFromMessages(historyMessages),
+      messages: historyMessages,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }, [conversationId, messages])
 
   // NEW (Code 2): response khatam hone par input pe focus
   useEffect(() => {
@@ -199,99 +224,14 @@ function ChatScreen({
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#0B1220] text-slate-50">
-
-      {/* Background Glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-96 w-96 rounded-full bg-purple-600/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-cyan-500/5 blur-3xl" />
-      </div>
-
-      {/* Sidebar (flex-col added so profile can sit at the bottom) */}
-      <aside className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col border-r border-[#263449] bg-[#111827]/95 p-5 backdrop-blur-xl">
-
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <PersonaLogo size={52} />
-
-          <div className="flex flex-col justify-center">
-            <h1 className="text-base font-semibold leading-none tracking-wide">
-              PersonaAI
-            </h1>
-
-            <p className="mt-1 text-[10px] leading-none tracking-[0.2em] text-gray-500">
-              Offline Personal Inteligence Platform
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="mt-10 space-y-2">
-
-          <button
-            type="button"
-            onClick={onBackToDashboard}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-400 transition-all duration-200 hover:bg-white/5 hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">⌂</span>
-            <span>Home</span>
-          </button>
-
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-xl border border-sky-500/20 bg-[#162033] px-4 py-3 text-left text-sky-300 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.04)]"
-          >
-            <span className="text-lg">◉</span>
-            <span className="font-medium">AI Chat</span>
-            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.9)]" />
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenFiles}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-400 transition-all duration-200 hover:bg-white/5 hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">▣</span>
-            <span>Files</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenTasks}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-400 transition-all duration-200 hover:bg-white/5 hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">✓</span>
-            <span>Tasks</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-400 transition-all duration-200 hover:bg-white/5 hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">⚙</span>
-            <span>Settings</span>
-          </button>
-
-        </nav>
-
-        {/* NEW (Code 2): Sidebar User Profile (replaces static bottom card) */}
-        <div className="mt-auto border-t border-[#263449] pt-4">
-          <SidebarUserProfile
-            userName={localStorage.getItem("personaAI_userName") || "User"}
-            profileImage={localStorage.getItem("personaAI_profileImage") || null}
-            onOpenSettings={onOpenSettings}
-            onProfileImageChange={(image) => {
-              localStorage.setItem("personaAI_profileImage", image)
-              window.dispatchEvent(new Event("personaAI-profile-updated"))
-            }}
-          />
-        </div>
-
-      </aside>
+      <WorkspaceLayout
+        activeItem="chat"
+        onOpenSettings={onOpenSettings}
+        onNavigate={onNavigate}
+      >
 
       {/* Main Chat Area (min-w-0 + width from Code 2) */}
-      <section className="relative ml-64 flex h-screen w-[calc(100%-16rem)] min-w-0 flex-col">
+      <section className="relative flex h-screen flex-1 min-w-0 flex-col">
 
         {/* Header */}
         <header className="flex shrink-0 items-center justify-between border-b border-[#263449] bg-[#0F172A]/80 px-8 py-5 backdrop-blur-xl">
@@ -492,7 +432,7 @@ function ChatScreen({
         </div>
 
       </section>
-
+      </WorkspaceLayout>
     </main>
   )
 }

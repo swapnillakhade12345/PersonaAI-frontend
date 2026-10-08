@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import PersonaLogo from "./PersonaLogo"
-import SidebarUserProfile from "./SidebarUserProfile" // NEW (Code 2)
+import WorkspaceLayout from "./WorkspaceLayout"
+import type { PersonaSidebarItem } from "./PersonaSidebarNavigation"
 import { listDocuments, uploadDocument } from "../services/api"
 
 interface SavedFile {
@@ -17,30 +17,17 @@ interface SavedFile {
 }
 
 interface FilesScreenProps {
-  onBackToDashboard: () => void
-  onOpenChat: () => void
-  onOpenTasks: () => void
+  onNavigate: (item: PersonaSidebarItem) => void
   onOpenSettings: () => void
 }
 
 function FilesScreen({
-  onBackToDashboard,
-  onOpenChat,
-  onOpenTasks,
+  onNavigate,
   onOpenSettings,
 }: FilesScreenProps) {
   const [files, setFiles] = useState<SavedFile[]>([])
   const [loading, setLoading] = useState(true)
   const [serviceError, setServiceError] = useState("")
-
-  // NEW (Code 2): profile state
-  const [userName, setUserName] = useState(() => {
-    return localStorage.getItem("personaAI_userName") || "User"
-  })
-
-  const [profileImage, setProfileImage] = useState<string | null>(() => {
-    return localStorage.getItem("personaAI_profileImage") || null
-  })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -82,20 +69,6 @@ function FilesScreen({
     }
 
     loadFiles()
-  }, [])
-
-  // NEW (Code 2): Listen for profile updates
-  useEffect(() => {
-    const handleProfileUpdate = () => {
-      setUserName(localStorage.getItem("personaAI_userName") || "User")
-      setProfileImage(localStorage.getItem("personaAI_profileImage") || null)
-    }
-
-    window.addEventListener("personaAI-profile-updated", handleProfileUpdate)
-
-    return () => {
-      window.removeEventListener("personaAI-profile-updated", handleProfileUpdate)
-    }
   }, [])
 
   // Choose file
@@ -273,135 +246,14 @@ function FilesScreen({
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#080D1B] text-white">
-
-      {/* Background Glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-96 w-96 rounded-full bg-purple-600/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-cyan-500/5 blur-3xl" />
-      </div>
-
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 z-30 h-screen w-64 border-r border-[#263449] bg-[#111827]/95 p-5 backdrop-blur-xl">
-
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <PersonaLogo size={52} />
-
-          <div className="flex flex-col justify-center">
-            <h1 className="text-base font-semibold leading-none tracking-wide">
-              PersonaAI
-            </h1>
-
-            <p className="mt-1 text-[9px] leading-none tracking-[0.18em] text-gray-500">
-              PERSONAL AI
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="mt-10 space-y-2">
-
-          {/* Home */}
-          <button
-            type="button"
-            onClick={onBackToDashboard}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-400 transition-all duration-200 hover:bg-[#162033] hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">
-              ⌂
-            </span>
-
-            <span>
-              Home
-            </span>
-          </button>
-
-          {/* AI Chat */}
-          <button
-            type="button"
-            onClick={onOpenChat}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-400 transition-all duration-200 hover:bg-[#162033] hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">
-              ◉
-            </span>
-
-            <span>
-              AI Chat
-            </span>
-          </button>
-
-          {/* Active Files */}
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-xl border border-sky-500/20 bg-[#162033] px-4 py-3 text-left text-sky-300 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.04)]"
-          >
-            <span className="text-lg">
-              ▣
-            </span>
-
-            <span className="font-medium">
-              Files
-            </span>
-
-            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.9)]" />
-          </button>
-
-          {/* Tasks */}
-          <button
-            type="button"
-            onClick={onOpenTasks}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-400 transition-all duration-200 hover:bg-white/5 hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">
-              ✓
-            </span>
-
-            <span>
-              Tasks
-            </span>
-          </button>
-
-          {/* Settings */}
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-400 transition-all duration-200 hover:bg-white/5 hover:text-white"
-          >
-            <span className="text-lg transition-transform group-hover:scale-110">
-              ⚙
-            </span>
-
-            <span>
-              Settings
-            </span>
-          </button>
-
-        </nav>
-
-        {/* NEW (Code 2): User Profile (replaces static "Offline Mode" card) */}
-        <div className="absolute bottom-5 left-5 right-5 border-t border-[#263449] pt-4">
-
-          <SidebarUserProfile
-            userName={userName}
-            profileImage={profileImage}
-            onOpenSettings={onOpenSettings}
-            onProfileImageChange={(image) => {
-              setProfileImage(image)
-
-              localStorage.setItem("personaAI_profileImage", image)
-
-              window.dispatchEvent(new Event("personaAI-profile-updated"))
-            }}
-          />
-
-        </div>
-
-      </aside>
+      <WorkspaceLayout
+        activeItem="files"
+        onOpenSettings={onOpenSettings}
+        onNavigate={onNavigate}
+      >
 
       {/* Main Content (width from Code 2) */}
-      <section className="relative ml-64 min-h-screen w-[calc(100%-16rem)] p-8">
+      <section className="relative min-h-screen flex-1 p-8">
 
         {/* Header */}
         <header className="flex items-start justify-between">
@@ -610,8 +462,8 @@ function FilesScreen({
         )}
 
       </section>
+      </WorkspaceLayout>
     </main>
   )
 }
-
 export default FilesScreen

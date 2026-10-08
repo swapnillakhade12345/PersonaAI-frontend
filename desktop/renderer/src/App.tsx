@@ -10,8 +10,15 @@ import ChatScreen from "./components/ChatScreen"
 import SettingsScreen from "./components/SettingsScreen"
 import FilesScreen from "./components/FilesScreen"
 import TasksScreen from "./components/TasksScreen"
+import PersonaChatHistoryScreen from "./components/PersonaChatHistoryScreen"
+import ProfileScreen from "./components/ProfileScreen"
+import type { PersonaSidebarItem } from "./components/PersonaSidebarNavigation"
 
 import IntroVideo from "./components/IntroVideo"
+import {
+  USER_ACCOUNT_ACTION_EVENT,
+  type UserAccountAction,
+} from "./userAccountEvents"
 
 type Page =
   | "splash"
@@ -21,6 +28,8 @@ type Page =
   | "forgot"
   | "dashboard"
   | "chat"
+  | "chatHistory"
+  | "profile"
   | "settings"
   | "files"
   | "tasks"
@@ -32,6 +41,17 @@ function App() {
   const [page, setPage] = useState<Page>("splash")
 
   const withThemeControls = (content: ReactNode) => content
+  const navigateWorkspace = (item: PersonaSidebarItem) => {
+    const destination: Record<PersonaSidebarItem, Page> = {
+      home: "dashboard",
+      chat: "chat",
+      chatHistory: "chatHistory",
+      files: "files",
+      tasks: "tasks",
+    }
+
+    setPage(destination[item])
+  }
 
   // Show the splash screen briefly after the intro video finishes.
   useEffect(() => {
@@ -43,6 +63,25 @@ function App() {
 
     return () => clearTimeout(timer)
   }, [page, showIntroVideo])
+
+  useEffect(() => {
+    const handleAccountAction = (event: Event) => {
+      const action = (event as CustomEvent<UserAccountAction>).detail
+
+      if (action === "profile") {
+        setPage("profile")
+      } else if (action === "add-account") {
+        setPage("login")
+      } else if (action === "log-out") {
+        setPage("login")
+      }
+    }
+
+    window.addEventListener(USER_ACCOUNT_ACTION_EVENT, handleAccountAction)
+    return () => {
+      window.removeEventListener(USER_ACCOUNT_ACTION_EVENT, handleAccountAction)
+    }
+  }, [])
 
   // --------------------------------------------------
   // FIRST: PersonaAI Intro Video
@@ -128,6 +167,34 @@ function App() {
         onOpenSettings={() => setPage("settings")}
         onOpenFiles={() => setPage("files")}
         onOpenTasks={() => setPage("tasks")}
+        onNavigate={navigateWorkspace}
+        onNewChat={() => {
+          const nextConversationId = crypto.randomUUID()
+          localStorage.setItem("personaAI_conversationId", nextConversationId)
+          setPage("chat")
+        }}
+      />
+    )
+  }
+
+  // --------------------------------------------------
+  // AI Chat History
+  // --------------------------------------------------
+  if (page === "chatHistory") {
+    return withThemeControls(
+      <PersonaChatHistoryScreen
+        onBack={() => setPage("chat")}
+        onOpenSettings={() => setPage("settings")}
+        onNavigate={navigateWorkspace}
+        onOpenConversation={(conversationId) => {
+          localStorage.setItem("personaAI_conversationId", conversationId)
+          setPage("chat")
+        }}
+        onCreateNewChat={() => {
+          const nextConversationId = crypto.randomUUID()
+          localStorage.setItem("personaAI_conversationId", nextConversationId)
+          setPage("chat")
+        }}
       />
     )
   }
@@ -140,8 +207,7 @@ function App() {
       <ChatScreen
         onBackToDashboard={() => setPage("dashboard")}
         onOpenSettings={() => setPage("settings")}
-        onOpenFiles={() => setPage("files")}
-        onOpenTasks={() => setPage("tasks")}
+        onNavigate={navigateWorkspace}
       />
     )
   }
@@ -152,10 +218,8 @@ function App() {
   if (page === "files") {
     return withThemeControls(
       <FilesScreen
-        onBackToDashboard={() => setPage("dashboard")}
-        onOpenChat={() => setPage("chat")}
-        onOpenTasks={() => setPage("tasks")}
         onOpenSettings={() => setPage("settings")}
+        onNavigate={navigateWorkspace}
       />
     )
   }
@@ -166,10 +230,8 @@ function App() {
   if (page === "tasks") {
     return withThemeControls(
       <TasksScreen
-        onBackToDashboard={() => setPage("dashboard")}
-        onOpenChat={() => setPage("chat")}
-        onOpenFiles={() => setPage("files")}
         onOpenSettings={() => setPage("settings")}
+        onNavigate={navigateWorkspace}
       />
     )
   }
@@ -181,9 +243,21 @@ function App() {
     return withThemeControls(
       <SettingsScreen
         onBackToDashboard={() => setPage("dashboard")}
-        onOpenChat={() => setPage("chat")}
-        onOpenFiles={() => setPage("files")}
-        onOpenTasks={() => setPage("tasks")}
+        onOpenSettings={() => setPage("settings")}
+        onNavigate={navigateWorkspace}
+      />
+    )
+  }
+
+  // --------------------------------------------------
+  // Profile
+  // --------------------------------------------------
+  if (page === "profile") {
+    return withThemeControls(
+      <ProfileScreen
+        onBackToDashboard={() => setPage("dashboard")}
+        onOpenSettings={() => setPage("settings")}
+        onNavigate={navigateWorkspace}
       />
     )
   }

@@ -1,5 +1,6 @@
 import { useState } from "react"
 
+import AuthScreenLayout from "./AuthScreenLayout"
 import PersonaLogo from "./PersonaLogo"
 
 interface LoginScreenProps {
@@ -34,25 +35,7 @@ function LoginScreen({
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0B1220] px-6 py-10 text-slate-50">
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.08),transparent_28%)]" />
-
-      <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(rgba(255,255,255,0.4)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.4)_1px,transparent_1px)] bg-size-[46px_46px]" />
-
-      <button
-        type="button"
-        onClick={onHome}
-        aria-label="Go to Home"
-        className="group absolute left-6 top-6 z-20 flex items-center gap-2 rounded-full border border-[#263449] bg-[#111827]/80 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-sky-400/30 hover:bg-[#162033] hover:text-white"
-      >
-        <span className="text-lg leading-none transition-transform duration-200 group-hover:-translate-x-1">
-          ←
-        </span>
-
-        Home
-      </button>
-
+    <AuthScreenLayout onHome={onHome}>
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-[#263449] bg-[#111827]/95 p-8 shadow-[0_18px_45px_rgba(15,23,42,0.38)] backdrop-blur-xl">
 
         {/* Top Glow */}
@@ -182,8 +165,7 @@ function LoginScreen({
         </p>
 
       </div>
-
-    </main>
+    </AuthScreenLayout>
   )
 }
 

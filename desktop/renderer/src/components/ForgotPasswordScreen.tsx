@@ -1,5 +1,6 @@
 import { useState } from "react"
 
+import AuthScreenLayout from "./AuthScreenLayout"
 import PersonaLogo from "./PersonaLogo"
 
 interface ForgotPasswordScreenProps {
@@ -24,12 +25,9 @@ function ForgotPasswordScreen({
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0B1220] px-6 text-slate-50">
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.08),transparent_28%)]" />
-
-      <div className="absolute inset-0 opacity-[0.03] [background-image:linear-gradient(rgba(255,255,255,0.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.35)_1px,transparent_1px)] [background-size:46px_46px]" />
-
+    <AuthScreenLayout
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0B1220] px-6 text-slate-50"
+    >
       <div className="relative z-10 w-full max-w-md">
 
         <div className="rounded-3xl border border-[#263449] bg-[#111827]/95 p-8 shadow-[0_18px_45px_rgba(15,23,42,0.38)] backdrop-blur-2xl">
@@ -130,7 +128,7 @@ function ForgotPasswordScreen({
         </p>
 
       </div>
-    </main>
+    </AuthScreenLayout>
   )
 }
 

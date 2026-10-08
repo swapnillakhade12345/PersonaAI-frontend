@@ -1,12 +1,17 @@
 import { useRef, useState } from "react"
 
 import PersonaLogo from "./PersonaLogo"
+import ProfileAvatar from "./ProfileAvatar"
+import WorkspaceLayout from "./WorkspaceLayout"
+import type { PersonaSidebarItem } from "./PersonaSidebarNavigation"
 
 type DashboardProps = {
   onOpenChat?: () => void
-  onOpenSettings?: () => void
+  onOpenSettings: () => void
   onOpenFiles?: () => void
   onOpenTasks?: () => void
+  onNewChat?: () => void
+  onNavigate: (item: PersonaSidebarItem) => void
 }
 
 function Dashboard({
@@ -14,6 +19,8 @@ function Dashboard({
   onOpenSettings,
   onOpenFiles,
   onOpenTasks,
+  onNewChat,
+  onNavigate,
 }: DashboardProps) {
   const [userName] = useState(() => {
     return localStorage.getItem("personaAI_userName") || "User"
@@ -24,8 +31,6 @@ function Dashboard({
   })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const firstLetter = userName.trim().charAt(0).toUpperCase() || "U"
 
   const handleProfileImage = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -56,160 +61,16 @@ function Dashboard({
 
   return (
     <main className="min-h-screen bg-[#0B1220] text-slate-50">
-
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-[20%] top-[-10%] h-96 w-96 rounded-full bg-sky-500/8 blur-[130px]" />
-        <div className="absolute right-[-5%] top-[30%] h-96 w-96 rounded-full bg-indigo-500/8 blur-[130px]" />
-        <div className="absolute bottom-[-10%] left-[35%] h-96 w-96 rounded-full bg-cyan-500/5 blur-[130px]" />
-      </div>
-
-      <aside className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col border-r border-[#263449] bg-[#111827]/95 p-5 backdrop-blur-xl">
-
-        {/* PersonaAI Branding */}
-        <div className="flex items-center gap-3">
-          <PersonaLogo size={52} />
-
-          <div className="flex flex-col justify-center">
-            <h1 className="text-base font-semibold leading-none tracking-wide">
-              PersonaAI
-            </h1>
-
-            <p className="mt-1 text-[9px] leading-none tracking-[0.18em] text-gray-500">
-              PERSONAL AI
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="mt-10 space-y-2">
-
-          {/* Home */}
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-xl border border-sky-500/20 bg-[#162033] px-4 py-3 text-left text-sky-300 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.04)]"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-lg">
-              ⌂
-            </span>
-
-            <span className="font-medium">
-              Home
-            </span>
-          </button>
-
-          {/* AI Chat */}
-          <button
-            type="button"
-            onClick={onOpenChat}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-400 transition duration-200 hover:bg-[#162033] hover:text-white"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg text-lg transition group-hover:bg-blue-500/10">
-              ◉
-            </span>
-
-            <span>
-              AI Chat
-            </span>
-          </button>
-
-          {/* Files */}
-          <button
-            type="button"
-            onClick={onOpenFiles}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-400 transition duration-200 hover:bg-[#162033] hover:text-white"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg text-lg transition group-hover:bg-purple-500/10">
-              ▣
-            </span>
-
-            <span>
-              Files
-            </span>
-          </button>
-
-          {/* Tasks */}
-          <button
-            type="button"
-            onClick={onOpenTasks}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-400 transition duration-200 hover:bg-[#162033] hover:text-white"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg text-lg transition group-hover:bg-cyan-500/10">
-              ✓
-            </span>
-
-            <span>
-              Tasks
-            </span>
-          </button>
-
-          {/* Settings */}
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-400 transition duration-200 hover:bg-[#162033] hover:text-white"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg text-lg transition group-hover:bg-purple-500/10">
-              ⚙
-            </span>
-
-            <span>
-              Settings
-            </span>
-          </button>
-
-        </nav>
-
-        {/* Sidebar User Profile */}
-        <div className="mt-auto border-t border-[#263449] pt-5">
-
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="Open settings"
-            className="group flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-white/[0.04]"
-          >
-
-            {/* Profile Image */}
-            {profileImage ? (
-              <img
-                src={profileImage}
-                alt={`${userName} profile`}
-                className="h-10 w-10 shrink-0 rounded-full object-cover shadow-[0_0_20px_rgba(99,102,241,0.25)]"
-              />
-            ) : (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-bold shadow-[0_0_20px_rgba(99,102,241,0.25)]">
-                {firstLetter}
-              </div>
-            )}
-
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">
-                {userName}
-              </p>
-
-              <p className="text-xs text-gray-500">
-                Personal Account
-              </p>
-            </div>
-
-          </button>
-
-          {/* Hidden Image Input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleProfileImage}
-            className="hidden"
-          />
-
-        </div>
-
-      </aside>
+      <WorkspaceLayout
+        activeItem="home"
+        onOpenSettings={onOpenSettings}
+        onNavigate={onNavigate}
+        background="dashboard"
+      >
 
       {/* ================= MAIN ================= */}
       {/* NEW (Code 2): w-[calc(100%-16rem)] */}
-      <section className="relative ml-64 min-h-screen w-[calc(100%-16rem)] p-8">
+      <section className="relative min-h-screen flex-1 p-8">
 
         {/* ================= HEADER ================= */}
         <header className="flex items-center justify-between">
@@ -220,7 +81,7 @@ function Dashboard({
             </p>
 
             <h2 className="mt-1 text-3xl font-bold tracking-tight">
-              Good Morning, {userName}
+               {userName}
             </h2>
 
             <p className="mt-2 text-gray-400">
@@ -245,17 +106,11 @@ function Dashboard({
               title="Change profile picture"
               className="rounded-full"
             >
-              {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt={`${userName} profile`}
-                  className="h-11 w-11 rounded-full object-cover shadow-[0_0_20px_rgba(99,102,241,0.25)]"
-                />
-              ) : (
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-bold shadow-[0_0_20px_rgba(99,102,241,0.25)]">
-                  {firstLetter}
-                </div>
-              )}
+              <ProfileAvatar
+                image={profileImage || null}
+                name={userName}
+                className="h-11 w-11 bg-gradient-to-br from-blue-500 to-purple-500 font-bold shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+              />
             </button>
 
           </div>
@@ -278,7 +133,7 @@ function Dashboard({
                 <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
 
                 <span className="text-xs font-semibold tracking-[0.22em] text-cyan-300">
-                  AI ASSISTANT ONLINE
+                  AI ASSISTANT OFFLINE
                 </span>
 
               </div>
@@ -299,7 +154,7 @@ function Dashboard({
               {/* Chat CTA */}
               <button
                 type="button"
-                onClick={onOpenChat}
+                onClick={onNewChat ?? onOpenChat}
                 className="mt-7 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-5 py-3 text-sm font-semibold shadow-[0_0_25px_rgba(99,102,241,0.25)] transition duration-200 hover:scale-[1.02]"
               >
                 Start Conversation →
@@ -731,6 +586,15 @@ function Dashboard({
         </div>
 
       </section>
+      </WorkspaceLayout>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleProfileImage}
+        className="hidden"
+      />
 
     </main>
   )
