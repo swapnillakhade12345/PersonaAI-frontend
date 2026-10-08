@@ -1,2 +1,4 @@
 # Development
 Use Node 20+. Copy `.env.example` to `.env`, install from the repository root, then run `npm run dev` for the API and browser renderer. To launch the desktop shell against the Vite dev server, run `npm run dev:electron`. For a packaged-style local launch, run `npm run start:desktop` (it builds the renderer first). Run `npm run build` and `npm test`. Ollama is optional during development; configure `OLLAMA_BASE_URL` and `OLLAMA_MODEL` when available.
+
+The SQLite database (`personaai.sqlite`) is stored outside the repository in the current user's application-data directory by default: `%LOCALAPPDATA%\PersonaAI` on Windows, `~/Library/Application Support/PersonaAI` on macOS, or `$XDG_DATA_HOME/personaai` (defaulting to `~/.local/share/personaai`) on Linux. Set `DATA_DIR` to override the location. Relative overrides are resolved under that per-user directory; absolute paths are used as provided.

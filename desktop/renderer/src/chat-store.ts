@@ -120,14 +120,34 @@ export async function sendChatMessage(message: string, conversationId: string): 
   })
 
   try {
-    const response = await fetch("http://127.0.0.1:3001/api/chats/stream", {
+    const createResponse = await fetch("http://127.0.0.1:3001/api/chats", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message, conversationId }),
+      body: JSON.stringify({
+        id: conversationId,
+        title: message.trim().slice(0, 80) || "New chat",
+      }),
       signal: controller.signal,
     })
+
+    if (!createResponse.ok) {
+      const responseText = await createResponse.text()
+      throw new Error(responseText || `Could not create chat (${createResponse.status})`)
+    }
+
+    const response = await fetch(
+      `http://127.0.0.1:3001/api/chats/${encodeURIComponent(conversationId)}/messages/stream`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+        signal: controller.signal,
+      }
+    )
 
     if (!response.ok) {
       const responseText = await response.text()

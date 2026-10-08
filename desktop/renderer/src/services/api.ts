@@ -23,17 +23,33 @@ export interface ChatResponse {
   sources?: unknown[]
 }
 
+export interface ChatSummary {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+}
+
 export interface DocumentSummary {
   id: string
   name: string
   createdAt: string
 }
 
-export function sendChatMessage(message: string, conversationId: string) {
-  return request<ChatResponse>("/api/chats", {
+export function createChat(id: string, title: string) {
+  return request<ChatSummary>("/api/chats", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, conversationId }),
+    body: JSON.stringify({ id, title }),
+  })
+}
+
+//Non-streaming API helper
+export function sendChatMessage(message: string, chatId: string) {
+  return request<ChatResponse>(`/api/chats/${encodeURIComponent(chatId)}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
   })
 }
 

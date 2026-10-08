@@ -4,7 +4,7 @@ import logging
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import requests
 
 from app.config.settings import settings
@@ -27,8 +27,18 @@ MAX_HISTORY_MESSAGES = 20
 
 
 class Message(BaseModel):
-    role: str  # "user" or "assistant"
+    role: str
     content: str
+
+    @field_validator("role")
+    @classmethod
+    def normalize_role(cls, value: str) -> str:
+        value = value.strip().lower()
+        if value == "ai":
+            value = "assistant"
+        if value not in {"user", "assistant"}:
+            raise ValueError("role must be 'user' or 'assistant'")
+        return value
 
 
 class ChatRequest(BaseModel):
@@ -44,20 +54,42 @@ class ChatResponse(BaseModel):
     conversationId: str
     route: str = "GENERAL"
     model: str = settings.ollama_model
-    sources: list[dict] = []
+    sources: list[dict] = Field(default_factory=list)
     metrics: dict | None = None
+
 
 def _build_messages(request: ChatRequest, conversation_id: str) -> tuple[list[dict], list[dict]]:
     if request.messages is not None:
         history = [m.model_dump() for m in request.messages]
     else:
-        history = _histories.get(conversation_id, [])
+        history = list(_histories.get(conversation_id, []))
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        *history,
-        {"role": "user", "content": request.message},
+    history = [
+        message
+        for message in history
+        if isinstance(message, dict) and "role" in message and "content" in message
     ]
+
+    messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    if request.context:
+        context_text = "\n".join(
+            f"{key}: {value}" for key, value in request.context.items() if value is not None
+        )
+        if context_text:
+            messages.append({"role": "system", "content": f"Context:\n{context_text}"})
+
+    messages.extend(history)
+    messages.append({"role": "user", "content": request.message})
+
+    logger = logging.getLogger("personaai.api")
+    logger.info(
+        "conversation=%s history_from_caller=%s history_count=%d",
+        conversation_id,
+        request.messages is not None,
+        len(history),
+    )
+
     return history, messages
 
 

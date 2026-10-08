@@ -2,7 +2,7 @@
 
 PersonaAI is a privacy-preserving local desktop AI assistant designed for offline-first use. The project separates a desktop shell from a Node API gateway and a single Python AI service so the local AI stack, RAG pipeline, memory, tools, and orchestration logic can evolve without creating redundant microservices.
 
-## Why it exists
+## Why it exists       
 The goal is to explore how a local AI assistant can selectively decide when to use general knowledge, retrieved personal documents, memory, or local tools while keeping context small, latency reasonable, and private data local.
 
 ## Architecture
